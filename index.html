@@ -25,8 +25,7 @@
   <div id="data-list"></div>
 
   <script>
-    // Using your provided deployed Apps Script Web App URL
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxRLa93h-Z5EbYtBbD8a23TQuoB-c4rJfER2-dfTqqhm0WKKGhT8gFI2j20mf_KNvHu-w/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxz-UAwGPkrrEwLdNIj9Px0oquyuVWVbnGVBv4k_XybQd42LumejCtdO1n2Ucf39ta8EQ/exec';
 
     function showMessage(msg) {
       document.getElementById('message').innerText = msg;
@@ -52,15 +51,21 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'insert', name, email })
       })
-      .then(res => res.json())
-      .then(data => {
+      .then(async res => {
+        let data;
+        try {
+          data = await res.json();
+        } catch (e) {
+          const text = await res.text();
+          showError('Server did not return JSON. Raw response: ' + text);
+          return;
+        }
         if (data.result === 'Success') {
           showMessage('Data inserted successfully!');
           document.getElementById('name').value = '';
           document.getElementById('email').value = '';
         } else {
-          // Show specific error message, if present
-          showError('Error: ' + (data.result || 'Unknown error'));
+          showError('Error: ' + (data.result || 'Unknown error') + (data.params ? (' | Params: ' + JSON.stringify(data.params)) : ''));
         }
       })
       .catch(err => showError('Network or server error: ' + err.name));
@@ -70,7 +75,7 @@
       fetch(SCRIPT_URL + '?action=fetch')
         .then(res => res.json())
         .then(data => {
-          if (data && data.rows) {
+          if (data && data.rows && data.rows.length) {
             let html = '<table><tr><th>Name</th><th>Email</th></tr>';
             data.rows.forEach(row => {
               html += `<tr><td>${row[0]}</td><td>${row[1]}</td></tr>`;
