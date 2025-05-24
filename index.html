@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Google Sheets Data Entry & Fetch</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    input, button { padding: 8px; margin: 5px; }
+    #data-list { margin-top: 20px; }
+    table, th, td { border: 1px solid #bbb; border-collapse: collapse; padding: 6px; }
+    #message { margin: 10px 0; color: green; }
+    #error { margin: 10px 0; color: red; }
+  </style>
+</head>
+<body>
+  <h2>Insert Data to Google Sheet</h2>
+  <input type="text" id="name" placeholder="Name" />
+  <input type="text" id="email" placeholder="Email" />
+  <button onclick="insertData()">Insert</button>
+  <div id="message"></div>
+  <div id="error"></div>
+  <hr>
+  <h2>Fetch Data from Google Sheet</h2>
+  <button onclick="fetchData()">Fetch Data</button>
+  <div id="data-list"></div>
+
+  <script>
+    // Using your provided deployed Apps Script Web App URL
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxRLa93h-Z5EbYtBbD8a23TQuoB-c4rJfER2-dfTqqhm0WKKGhT8gFI2j20mf_KNvHu-w/exec';
+
+    function showMessage(msg) {
+      document.getElementById('message').innerText = msg;
+      document.getElementById('error').innerText = '';
+    }
+
+    function showError(msg) {
+      document.getElementById('error').innerText = msg;
+      document.getElementById('message').innerText = '';
+    }
+
+    function insertData() {
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      if (!name || !email) {
+        showError('Please enter both name and email.');
+        return;
+      }
+
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'insert', name, email })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.result === 'Success') {
+          showMessage('Data inserted successfully!');
+          document.getElementById('name').value = '';
+          document.getElementById('email').value = '';
+        } else {
+          // Show specific error message, if present
+          showError('Error: ' + (data.result || 'Unknown error'));
+        }
+      })
+      .catch(err => showError('Network or server error: ' + err.name));
+    }
+
+    function fetchData() {
+      fetch(SCRIPT_URL + '?action=fetch')
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.rows) {
+            let html = '<table><tr><th>Name</th><th>Email</th></tr>';
+            data.rows.forEach(row => {
+              html += `<tr><td>${row[0]}</td><td>${row[1]}</td></tr>`;
+            });
+            html += '</table>';
+            document.getElementById('data-list').innerHTML = html;
+          } else {
+            document.getElementById('data-list').innerText = 'No data found.';
+          }
+        })
+        .catch(err => showError('Error: ' + err.name));
+    }
+  </script>
+</body>
+</html>
